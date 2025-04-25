@@ -18,6 +18,12 @@ def load_data():
 data = load_data()
 model = load(BytesIO(requests.get(model_url).content))
 
+# === Add derived features to data for scaling later ===
+data["Forest per Person"] = data["Forest Area (%)"] / data["Population"]
+data["Log Population"] = np.log1p(data["Population"])
+data["Temp^2"] = data["Avg Temperature (°C)"] ** 2
+data["Rainfall^2"] = data["Rainfall (mm)"] ** 2
+
 # === Streamlit Interface ===
 st.title("Climate Change Analysis and CO2 Prediction")
 st.markdown("### Research Questions Insights")
@@ -74,9 +80,9 @@ for field in fields:
 if st.button("Predict CO2 Emissions"):
     input_df = pd.DataFrame([user_input])
 
-    # === Manual Feature Engineering (same as training) ===
-    input_df["CO2 per Million People"] = 0  # ignored in model
-    input_df["Temp Change YoY"] = 0         # ignored in model
+    # Manual Feature Engineering
+    input_df["CO2 per Million People"] = 0
+    input_df["Temp Change YoY"] = 0
     input_df["Forest per Person"] = input_df["Forest Area (%)"] / input_df["Population"]
     input_df["Log Population"] = np.log1p(input_df["Population"])
     input_df["Temp^2"] = input_df["Avg Temperature (°C)"] ** 2
