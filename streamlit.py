@@ -32,14 +32,7 @@ st.pyplot(fig1)
 
 # === Q2: Top CO2 Emitters ===
 st.subheader("Q2: Top 10 Countries by Average CO2 Emissions")
-country_cols = [col for col in data.columns if col.startswith("Country_")]
-country_labels = [col.replace("Country_", "") for col in country_cols]
-country_avg = {
-    label: data[data[col] == 1]["CO2 Emissions (Tons/Capita)"].mean()
-    for col, label in zip(country_cols, country_labels)
-}
-q2 = pd.DataFrame(sorted(country_avg.items(), key=lambda x: x[1], reverse=True)[:10],
-                  columns=["Country", "CO2 Emissions (Tons/Capita)"])
+q2 = data.groupby("Country")["CO2 Emissions (Tons/Capita)"].mean().sort_values(ascending=False).head(10).reset_index()
 fig2, ax2 = plt.subplots()
 sns.barplot(data=q2, x="CO2 Emissions (Tons/Capita)", y="Country", ax=ax2)
 ax2.grid(True)
