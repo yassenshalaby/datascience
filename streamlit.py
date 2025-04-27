@@ -18,11 +18,28 @@ def load_data():
 data = load_data()
 model = load(BytesIO(requests.get(model_url).content))
 
-# === Add derived features to data for scaling later ===
+# === Feature Engineering for data ===
+data = data.sort_values(["Year"])
+
+# Create new features
+data["CO2 per Million People"] = data["CO2 Emissions (Tons/Capita)"] * 1e6 / data["Population"]
+data["Temp Change YoY"] = data.sort_values(["Country", "Year"]).groupby("Country")["Avg Temperature (°C)"].diff()
 data["Forest per Person"] = data["Forest Area (%)"] / data["Population"]
 data["Log Population"] = np.log1p(data["Population"])
 data["Temp^2"] = data["Avg Temperature (°C)"] ** 2
 data["Rainfall^2"] = data["Rainfall (mm)"] ** 2
+
+# Min-Max Scaling
+columns_to_scale = [
+    "CO2 per Million People", "Temp Change YoY",
+    "Forest per Person", "Log Population",
+    "Temp^2", "Rainfall^2"
+]
+
+for col in columns_to_scale:
+    min_val = data[col].min()
+    max_val = data[col].max()
+    data[col + "_scaled"] = (data[col] - min_val) / (max_val - min_val)
 
 # === Streamlit Interface ===
 st.title("Climate Change Analysis and CO2 Prediction")
@@ -80,7 +97,7 @@ for field in fields:
 if st.button("Predict CO2 Emissions"):
     input_df = pd.DataFrame([user_input])
 
-    # Manual Feature Engineering
+    # Recreate derived features for prediction
     input_df["CO2 per Million People"] = 0
     input_df["Temp Change YoY"] = 0
     input_df["Forest per Person"] = input_df["Forest Area (%)"] / input_df["Population"]
@@ -88,6 +105,7 @@ if st.button("Predict CO2 Emissions"):
     input_df["Temp^2"] = input_df["Avg Temperature (°C)"] ** 2
     input_df["Rainfall^2"] = input_df["Rainfall (mm)"] ** 2
 
+    # Apply scaling
     def minmax(col, ref):
         return (col - ref.min()) / (ref.max() - ref.min())
 
@@ -98,6 +116,7 @@ if st.button("Predict CO2 Emissions"):
     input_df["Temp^2_scaled"] = minmax(input_df["Temp^2"], data["Temp^2"])
     input_df["Rainfall^2_scaled"] = minmax(input_df["Rainfall^2"], data["Rainfall^2"])
 
+    # Select final features
     final_features = [
         "Avg Temperature (°C)", "Sea Level Rise (mm)", "Rainfall (mm)", "Population",
         "Renewable Energy (%)", "Extreme Weather Events", "Forest Area (%)",
